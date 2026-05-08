@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool, isDatabaseAvailable } = require('../config/database');
+const { getJwtSecret } = require('../config/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { validateInput } = require('../middleware/validation');
 const localStore = require('../lib/localStore');
@@ -114,11 +115,7 @@ router.post('/login', validateInput(loginSchema), asyncHandler(async (req, res) 
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      if (!process.env.JWT_SECRET) {
-        throw new Error('JWT_SECRET is not configured');
-      }
-
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+      const token = jwt.sign({ userId: user.id }, getJwtSecret(), {
         expiresIn: '24h',
       });
 
@@ -149,11 +146,7 @@ router.post('/login', validateInput(loginSchema), asyncHandler(async (req, res) 
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not configured');
-    }
-
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id }, getJwtSecret(), {
       expiresIn: '24h',
     });
 

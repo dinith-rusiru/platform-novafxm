@@ -1,0 +1,143 @@
+{
+  "nextUserId": 4,
+  "nextTradeId": 2,
+  "nextTradingAccountId": 3,
+  "nextAdminTransactionId": 3,
+  "nextDocumentId": 1,
+  "users": [
+    {
+      "id": 1,
+      "email": "luzifarff@gmail.com",
+      "username": "lizi",
+      "password": "$2a$10$Eq6TKc7HsJb4KXVZevL1qedqSTOCqa5.PUVyC3gmBPS5nSv1WZmUq",
+      "role": "customer",
+      "account_type": "demo",
+      "balance": 10000,
+      "equity": 10000,
+      "used_margin": 0,
+      "free_margin": 10000,
+      "margin_level": 0,
+      "leverage": 200,
+      "created_at": "2026-05-08T10:36:05.461Z",
+      "updated_at": "2026-05-08T10:36:05.461Z"
+    },
+    {
+      "id": 2,
+      "email": "codex-login-1778236708120@example.com",
+      "username": "codex1778236708120",
+      "password": "$2a$10$88VrxYL/uh38LxuRTlVqR.zgn.j8HPHNh/muM7W0IhGo4ixbkLiG2",
+      "role": "customer",
+      "account_type": "demo",
+      "balance": 10000,
+      "equity": 10000,
+      "used_margin": 0,
+      "free_margin": 10000,
+      "margin_level": 0,
+      "leverage": 200,
+      "created_at": "2026-05-08T10:38:28.313Z",
+      "updated_at": "2026-05-08T10:38:28.313Z"
+    },
+    {
+      "id": 3,
+      "email": "admin@novafxm.local",
+      "username": "admin",
+      "password": "$2a$10$AtpyM63nshYTZY34sCt8NOJWl4L0mTkC/vTDrH26j.lTJOlJyBaji",
+      "role": "admin",
+      "account_type": "demo",
+      "balance": 0,
+      "equity": 0,
+      "used_margin": 0,
+      "free_margin": 0,
+      "margin_level": 0,
+      "leverage": 200,
+      "created_at": "2026-05-08T11:00:00.000Z",
+      "updated_at": "2026-05-08T11:00:00.000Z"
+    }
+  ],
+  "tradingAccounts": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "username": "lizi",
+      "account_number": "LIVE-000001",
+      "account_type": "live",
+      "name": "NovaFXM Live Account",
+      "balance": 90,
+      "equity": 73.16,
+      "used_margin": 23.55,
+      "free_margin": 49.61,
+      "margin_level": 310.66,
+      "leverage": 200,
+      "status": "active",
+      "created_at": "2026-05-08T10:40:16.265Z",
+      "updated_at": "2026-05-08T12:07:37.699Z"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "username": "lizi",
+      "account_number": "DEMO-000002",
+      "account_type": "demo",
+      "name": "NovaFXM Demo Account",
+      "balance": 10000,
+      "equity": 10000,
+      "used_margin": 0,
+      "free_margin": 10000,
+      "margin_level": 0,
+      "leverage": 200,
+      "status": "active",
+      "created_at": "2026-05-08T11:36:07.905Z",
+      "updated_at": "2026-05-08T12:07:37.699Z"
+    }
+  ],
+  "adminTransactions": [
+    {
+      "id": 1,
+      "admin_user_id": 3,
+      "account_id": 1,
+      "user_id": 1,
+      "account_number": "LIVE-000001",
+      "type": "credit",
+      "amount": 100,
+      "previous_balance": 0,
+      "new_balance": 100,
+      "note": "",
+      "created_at": "2026-05-08T11:02:43.465Z"
+    },
+    {
+      "id": 2,
+      "admin_user_id": 3,
+      "account_id": 1,
+      "user_id": 1,
+      "account_number": "LIVE-000001",
+      "type": "debit",
+      "amount": -10,
+      "previous_balance": 100,
+      "new_balance": 90,
+      "note": "g pay",
+      "created_at": "2026-05-08T11:03:07.800Z"
+    }
+  ],
+  "documents": [],
+  "trades": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "account_id": 1,
+      "symbol": "XAU/USD",
+      "type": "buy",
+      "lot_size": 0.01,
+      "open_price": 4727.57,
+      "close_price": null,
+      "take_profit": 4728,
+      "stop_loss": null,
+      "pnl": 0,
+      "status": "open",
+      "opened_at": "2026-05-08T11:05:59.786Z",
+      "closed_at": null,
+      "updated_at": "2026-05-08T11:05:59.786Z"
+    }
+  ],
+  "history": [],
+  "prices": []
+}

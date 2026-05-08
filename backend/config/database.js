@@ -209,6 +209,26 @@ const initializeDatabase = async () => {
       )
     `);
 
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS account_documents (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT NOT NULL,
+        document_type VARCHAR(100) NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        file_size INT DEFAULT 0,
+        mime_type VARCHAR(100),
+        link VARCHAR(255),
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        reason VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        processed_at TIMESTAMP NULL,
+        processed_by INT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_status (status)
+      )
+    `);
+
     console.log('Database initialized successfully');
     databaseAvailable = true;
   } catch (error) {

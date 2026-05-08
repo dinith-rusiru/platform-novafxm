@@ -124,6 +124,47 @@ export const accountAPI = {
     }
   },
 
+  getTransactions: async (token) => {
+    try {
+      const response = await fetch(`${API_URL}/account/transactions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return await handleApiResponse(response);
+    } catch (error) {
+      console.error('Get account transactions error:', error);
+      return { error: error.message };
+    }
+  },
+
+  getDocuments: async (token) => {
+    try {
+      const response = await fetch(`${API_URL}/account/documents`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return await handleApiResponse(response);
+    } catch (error) {
+      console.error('Get account documents error:', error);
+      return { error: error.message };
+    }
+  },
+
+  uploadDocument: async (token, documentData) => {
+    try {
+      const response = await fetch(`${API_URL}/account/documents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(documentData),
+      });
+      return await handleApiResponse(response);
+    } catch (error) {
+      console.error('Upload document error:', error);
+      return { error: error.message };
+    }
+  },
+
   createTradingAccount: async (token, accountType) => {
     try {
       const response = await fetch(`${API_URL}/account/trading-accounts`, {
@@ -301,6 +342,35 @@ export const adminAPI = {
       return await handleApiResponse(response);
     } catch (error) {
       console.error('Adjust live account error:', error);
+      return { error: error.message };
+    }
+  },
+
+  getDocuments: async (token) => {
+    try {
+      const response = await fetch(`${API_URL}/admin/documents`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return await handleApiResponse(response);
+    } catch (error) {
+      console.error('Get admin documents error:', error);
+      return { error: error.message };
+    }
+  },
+
+  decideDocument: async (token, documentId, status, reason = '') => {
+    try {
+      const response = await fetch(`${API_URL}/admin/documents/${documentId}/decision`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status, reason }),
+      });
+      return await handleApiResponse(response);
+    } catch (error) {
+      console.error('Decide document error:', error);
       return { error: error.message };
     }
   },

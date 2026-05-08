@@ -25,18 +25,23 @@ function AdminContent() {
   const [amounts, setAmounts] = useState({});
   const [notes, setNotes] = useState({});
   const [savingAccountId, setSavingAccountId] = useState(null);
+  const [documentReasons, setDocumentReasons] = useState({});
+  const [savingDocumentId, setSavingDocumentId] = useState(null);
 
   const loadAccounts = useCallback(async () => {
     if (!token) return;
 
     setLoading(true);
     setError('');
-    const result = await adminAPI.getAccounts(token);
+    const [accountsResult, documentsResult] = await Promise.all([
+      adminAPI.getAccounts(token),
+      adminAPI.getDocuments(token),
+    ]);
 
-    if (result?.error) {
-      setError(result.error);
+    if (accountsResult?.error || documentsResult?.error) {
+      setError(accountsResult?.error || documentsResult?.error);
     } else {
-      setData(result);
+      setData({ ...accountsResult, documents: documentsResult || [] });
     }
 
     setLoading(false);
@@ -82,6 +87,106 @@ function AdminContent() {
 
     setSavingAccountId(null);
   };
+
+  const decideDocument = async (documentId, status) => {
+    setSavingDocumentId(documentId);
+    setError('');
+    setSuccess('');
+
+    const result = await adminAPI.decideDocument(token, documentId, status, documentReasons[documentId] || '');
+
+    if (result?.error) {
+      setError(result.error);
+    } else {
+      setSuccess(`Document ${status}`);
+      setDocumentReasons((prev) => ({ ...prev, [documentId]: '' }));
+      await loadAccounts();
+    }
+
+    setSavingDocumentId(null);
+  };
+
+  const renderDocumentRows = () => (
+    <div className="overflow-x-auto border border-slate-200 bg-white">
+      <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <tr>
+            <th className="px-4 py-3 text-left">Date</th>
+            <th className="px-4 py-3 text-left">Customer</th>
+            <th className="px-4 py-3 text-left">Document</th>
+            <th className="px-4 py-3 text-left">File</th>
+            <th className="px-4 py-3 text-left">Status</th>
+            <th className="px-4 py-3 text-left">Reason</th>
+            <th className="px-4 py-3 text-left">Action</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {(data.documents || []).length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                No documents uploaded
+              </td>
+            </tr>
+          ) : (data.documents || []).map((document) => (
+            <tr key={document.id} className="align-top">
+              <td className="px-4 py-3">{new Date(document.created_at).toLocaleString()}</td>
+              <td className="px-4 py-3">
+                <div className="font-semibold">{document.user?.email || document.user_id}</div>
+                <div className="text-xs text-slate-500">{document.user?.username}</div>
+              </td>
+              <td className="px-4 py-3 font-semibold">{document.document_type}</td>
+              <td className="px-4 py-3 text-blue-700">{document.file_name || document.link}</td>
+              <td className="px-4 py-3 capitalize">
+                <span className={`rounded-full px-2 py-1 text-xs font-bold ${
+                  document.status === 'approved'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : document.status === 'rejected'
+                      ? 'bg-red-50 text-red-700'
+                      : 'bg-amber-50 text-amber-700'
+                }`}>
+                  {document.status}
+                </span>
+              </td>
+              <td className="min-w-56 px-4 py-3">
+                <input
+                  type="text"
+                  value={documentReasons[document.id] ?? document.reason ?? ''}
+                  onChange={(event) => setDocumentReasons((prev) => ({ ...prev, [document.id]: event.target.value }))}
+                  placeholder="Reject reason"
+                  disabled={document.status !== 'pending'}
+                  className="w-full rounded border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"
+                />
+              </td>
+              <td className="px-4 py-3">
+                {document.status === 'pending' ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => decideDocument(document.id, 'approved')}
+                      disabled={savingDocumentId === document.id}
+                      className="rounded bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => decideDocument(document.id, 'rejected')}
+                      disabled={savingDocumentId === document.id}
+                      className="rounded bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-60"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-slate-500">
+                    {document.processed_at ? new Date(document.processed_at).toLocaleString() : 'Processed'}
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   const renderAccountRows = (accounts, showControls = false) => (
     <div className="overflow-x-auto border border-slate-200 bg-white">
@@ -213,6 +318,7 @@ function AdminContent() {
                 ['live', 'Live Accounts'],
                 ['demo', 'Demo Accounts'],
                 ['history', 'Admin Transactions'],
+                ['documents', `Documents (${(data.documents || []).filter((document) => document.status === 'pending').length})`],
               ].map(([value, label]) => (
                 <button
                   key={value}
@@ -236,6 +342,8 @@ function AdminContent() {
             renderAccountRows(data.live, true)
           ) : activeTab === 'demo' ? (
             renderAccountRows(data.demo)
+          ) : activeTab === 'documents' ? (
+            renderDocumentRows()
           ) : (
             <div className="overflow-x-auto border border-slate-200 bg-white">
               <table className="min-w-full divide-y divide-slate-200 text-sm">

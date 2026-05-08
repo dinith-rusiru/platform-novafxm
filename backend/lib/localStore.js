@@ -15,9 +15,11 @@ const defaultData = {
   nextTradeId: 1,
   nextTradingAccountId: 1,
   nextAdminTransactionId: 1,
+  nextDocumentId: 1,
   users: [],
   tradingAccounts: [],
   adminTransactions: [],
+  documents: [],
   trades: [],
   history: [],
   prices: [],
@@ -89,6 +91,22 @@ const publicAccount = (account) => ({
   status: account.status,
   created_at: account.created_at,
   updated_at: account.updated_at,
+});
+
+const publicDocument = (document, user = null) => ({
+  id: document.id,
+  user_id: document.user_id,
+  document_type: document.document_type,
+  file_name: document.file_name,
+  file_size: document.file_size,
+  mime_type: document.mime_type,
+  link: document.link,
+  status: document.status,
+  reason: document.reason || '',
+  created_at: document.created_at,
+  processed_at: document.processed_at || null,
+  processed_by: document.processed_by || null,
+  user: user ? publicUser(user) : undefined,
 });
 
 const recalculateAccount = (data, account) => {
@@ -262,6 +280,82 @@ const localStore = {
 
     if (changed) writeData(data);
     return accounts;
+  },
+
+  getAccountTransactions(userId) {
+    const data = readData();
+    return (data.adminTransactions || [])
+      .filter((transaction) => transaction.user_id === Number(userId))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 100);
+  },
+
+  getDocuments(userId) {
+    const data = readData();
+    return (data.documents || [])
+      .filter((document) => document.user_id === Number(userId))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .map((document) => publicDocument(document));
+  },
+
+  createDocument(userId, documentData) {
+    const data = readData();
+    const user = data.users.find((item) => item.id === Number(userId));
+    if (!user) return { error: 'User not found', status: 404 };
+
+    const documentType = String(documentData.document_type || '').trim();
+    const fileName = String(documentData.file_name || '').trim();
+
+    if (!documentType || !fileName) {
+      return { error: 'Document type and file name are required', status: 400 };
+    }
+
+    const document = {
+      id: data.nextDocumentId++,
+      user_id: Number(userId),
+      document_type: documentType,
+      file_name: fileName,
+      file_size: Number(documentData.file_size || 0),
+      mime_type: documentData.mime_type || '',
+      link: documentData.link || fileName,
+      status: 'pending',
+      reason: '',
+      created_at: new Date().toISOString(),
+      processed_at: null,
+      processed_by: null,
+    };
+
+    data.documents.push(document);
+    writeData(data);
+    return { document: publicDocument(document) };
+  },
+
+  getAdminDocuments() {
+    const data = readData();
+    const usersById = new Map(data.users.map((user) => [user.id, user]));
+
+    return (data.documents || [])
+      .slice()
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .map((document) => publicDocument(document, usersById.get(document.user_id) || null));
+  },
+
+  decideDocument({ documentId, adminUserId, status, reason = '' }) {
+    const data = readData();
+    const document = (data.documents || []).find((item) => item.id === Number(documentId));
+    if (!document) return { error: 'Document not found', status: 404 };
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return { error: 'Status must be approved or rejected', status: 400 };
+    }
+
+    document.status = status;
+    document.reason = status === 'rejected' ? reason : '';
+    document.processed_at = new Date().toISOString();
+    document.processed_by = Number(adminUserId);
+
+    writeData(data);
+    return { document: publicDocument(document) };
   },
 
   createTradingAccount(userId, accountType) {

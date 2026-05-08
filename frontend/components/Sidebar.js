@@ -1,14 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getCategories, getSymbolsByCategory } from '@/lib/symbolMeta';
 import { formatSymbolPrice, getNumericPrice } from '@/lib/tradingEngine';
 import { getLiveQuote, getQuoteSpread } from '@/lib/marketQuotes';
 
 export default function Sidebar({ prices, selectedSymbol, onSymbolSelect, account }) {
   const [expandedCategory, setExpandedCategory] = useState('forex');
+  const [searchQuery, setSearchQuery] = useState('');
   const [pricesLoaded, setPricesLoaded] = useState(false);
   const categories = getCategories();
+  const normalizedSearch = searchQuery.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  const symbolsByCategory = useMemo(() => (
+    categories.reduce((grouped, category) => {
+      grouped[category] = getSymbolsByCategory(category).filter((meta) => {
+        if (!normalizedSearch) return true;
+
+        const symbol = meta.symbol.toUpperCase();
+        const compactSymbol = symbol.replace(/[^A-Z0-9]/g, '');
+        return symbol.includes(searchQuery.trim().toUpperCase()) || compactSymbol.includes(normalizedSearch);
+      });
+
+      return grouped;
+    }, {})
+  ), [categories, normalizedSearch, searchQuery]);
+
+  const visibleCategories = useMemo(() => (
+    categories.filter((category) => symbolsByCategory[category].length > 0)
+  ), [categories, symbolsByCategory]);
+  const hasSearch = normalizedSearch.length > 0;
 
   useEffect(() => {
     if (prices && Object.keys(prices).length > 0) {
@@ -29,8 +50,15 @@ export default function Sidebar({ prices, selectedSymbol, onSymbolSelect, accoun
   if (!pricesLoaded) {
     return (
       <div className="w-72 border-r border-nova-border bg-white h-screen overflow-y-auto flex flex-col">
-        <div className="p-4 border-b border-nova-border">
+        <div className="space-y-3 p-4 border-b border-nova-border">
           <h2 className="font-semibold text-gray-900">Market Watch</h2>
+          <input
+            type="text"
+            placeholder="Search symbols..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="w-full rounded-lg border border-nova-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nova-blue"
+          />
         </div>
         <div className="p-4 text-center text-gray-500">Loading prices...</div>
       </div>
@@ -39,12 +67,23 @@ export default function Sidebar({ prices, selectedSymbol, onSymbolSelect, accoun
 
   return (
     <div className="w-72 border-r border-nova-border bg-white h-screen overflow-y-auto flex flex-col">
-      <div className="p-4 border-b border-nova-border">
+      <div className="space-y-3 p-4 border-b border-nova-border">
         <h2 className="font-semibold text-gray-900">Market Watch</h2>
+        <input
+          type="text"
+          placeholder="Search symbols..."
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          className="w-full rounded-lg border border-nova-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nova-blue"
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {categories.map((category) => (
+        {visibleCategories.length === 0 ? (
+          <div className="px-4 py-6 text-sm text-gray-500">
+            No symbols found
+          </div>
+        ) : visibleCategories.map((category) => (
           <div key={category} className="border-b border-nova-border">
             <button
               onClick={() => setExpandedCategory(expandedCategory === category ? null : category)}
@@ -56,9 +95,9 @@ export default function Sidebar({ prices, selectedSymbol, onSymbolSelect, accoun
               </span>
             </button>
 
-            {expandedCategory === category && (
+            {(hasSearch || expandedCategory === category) && (
               <div className="bg-nova-gray">
-                {getSymbolsByCategory(category).map((meta) => {
+                {symbolsByCategory[category].map((meta) => {
                   const quote = getLiveQuote(prices, meta.symbol);
                   const spread = getQuoteSpread(prices, meta.symbol);
 

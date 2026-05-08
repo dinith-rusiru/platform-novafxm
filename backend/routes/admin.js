@@ -79,6 +79,101 @@ router.get('/accounts', async (req, res) => {
   }
 });
 
+router.get('/documents', async (req, res) => {
+  try {
+    if (!isDatabaseAvailable()) {
+      return res.json(localStore.getAdminDocuments());
+    }
+
+    const connection = await pool.getConnection();
+    const [documents] = await connection.execute(
+      `SELECT ad.id, ad.user_id, ad.document_type, ad.file_name, ad.file_size, ad.mime_type,
+        ad.link, ad.status, ad.reason, ad.created_at, ad.processed_at, ad.processed_by,
+        u.email, u.username, u.role
+       FROM account_documents ad
+       JOIN users u ON u.id = ad.user_id
+       ORDER BY ad.created_at DESC`
+    );
+    connection.release();
+
+    return res.json(documents.map((document) => ({
+      id: document.id,
+      user_id: document.user_id,
+      document_type: document.document_type,
+      file_name: document.file_name,
+      file_size: document.file_size,
+      mime_type: document.mime_type,
+      link: document.link,
+      status: document.status,
+      reason: document.reason || '',
+      created_at: document.created_at,
+      processed_at: document.processed_at,
+      processed_by: document.processed_by,
+      user: {
+        id: document.user_id,
+        email: document.email,
+        username: document.username,
+        role: document.role,
+      },
+    })));
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/documents/:documentId/decision', async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const status = String(req.body.status || '').toLowerCase();
+    const reason = req.body.reason || '';
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be approved or rejected' });
+    }
+
+    if (!isDatabaseAvailable()) {
+      const result = localStore.decideDocument({
+        documentId,
+        adminUserId: req.userId,
+        status,
+        reason,
+      });
+
+      if (result.error) {
+        return res.status(result.status || 400).json({ error: result.error });
+      }
+
+      return res.json(result.document);
+    }
+
+    const connection = await pool.getConnection();
+    const [result] = await connection.execute(
+      `UPDATE account_documents
+       SET status = ?, reason = ?, processed_at = NOW(), processed_by = ?
+       WHERE id = ?`,
+      [status, status === 'rejected' ? reason : '', req.userId, documentId]
+    );
+
+    if (result.affectedRows === 0) {
+      connection.release();
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    const [documents] = await connection.execute(
+      `SELECT id, user_id, document_type, file_name, file_size, mime_type, link, status,
+        reason, created_at, processed_at, processed_by
+       FROM account_documents
+       WHERE id = ?`,
+      [documentId]
+    );
+
+    connection.release();
+    return res.json(documents[0]);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/live-accounts/:accountId/adjust', async (req, res) => {
   try {
     const { accountId } = req.params;

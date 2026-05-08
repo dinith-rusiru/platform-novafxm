@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export default function Navbar({ account, accounts = [], selectedAccountId, onAccountChange, onSearch }) {
+export default function Navbar({ account, accounts = [], selectedAccountId, onAccountChange }) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
@@ -31,16 +31,6 @@ export default function Navbar({ account, accounts = [], selectedAccountId, onAc
           width={160}
           height={49}
           priority
-        />
-      </div>
-
-      {/* Search */}
-      <div className="flex-1 max-w-xs">
-        <input
-          type="text"
-          placeholder="Search symbol..."
-          onChange={(e) => onSearch(e.target.value)}
-          className="w-full px-3 py-2 border border-nova-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-nova-blue"
         />
       </div>
 

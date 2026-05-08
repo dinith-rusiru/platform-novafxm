@@ -138,6 +138,114 @@ router.get('/trading-accounts', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/transactions', authMiddleware, async (req, res) => {
+  try {
+    if (await isAdminUser(req.userId)) {
+      return res.json([]);
+    }
+
+    if (!isDatabaseAvailable()) {
+      return res.json(localStore.getAccountTransactions(req.userId));
+    }
+
+    const connection = await pool.getConnection();
+    const [transactions] = await connection.execute(
+      `SELECT id, admin_user_id, account_id, user_id, account_number, type, amount,
+        previous_balance, new_balance, note, created_at
+       FROM admin_transactions
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 100`,
+      [req.userId]
+    );
+
+    connection.release();
+    return res.json(transactions);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/documents', authMiddleware, async (req, res) => {
+  try {
+    if (await isAdminUser(req.userId)) {
+      return res.json([]);
+    }
+
+    if (!isDatabaseAvailable()) {
+      return res.json(localStore.getDocuments(req.userId));
+    }
+
+    const connection = await pool.getConnection();
+    const [documents] = await connection.execute(
+      `SELECT id, user_id, document_type, file_name, file_size, mime_type, link, status,
+        reason, created_at, processed_at, processed_by
+       FROM account_documents
+       WHERE user_id = ?
+       ORDER BY created_at DESC`,
+      [req.userId]
+    );
+
+    connection.release();
+    return res.json(documents);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/documents', authMiddleware, async (req, res) => {
+  try {
+    if (await isAdminUser(req.userId)) {
+      return res.status(403).json({ error: 'Admin users do not upload account documents' });
+    }
+
+    const documentType = String(req.body.document_type || '').trim();
+    const fileName = String(req.body.file_name || '').trim();
+
+    if (!documentType || !fileName) {
+      return res.status(400).json({ error: 'Document type and file name are required' });
+    }
+
+    if (!isDatabaseAvailable()) {
+      const result = localStore.createDocument(req.userId, req.body);
+
+      if (result.error) {
+        return res.status(result.status || 400).json({ error: result.error });
+      }
+
+      return res.status(201).json(result.document);
+    }
+
+    const connection = await pool.getConnection();
+    const [result] = await connection.execute(
+      `INSERT INTO account_documents
+        (user_id, document_type, file_name, file_size, mime_type, link, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+      [
+        req.userId,
+        documentType,
+        fileName,
+        Number(req.body.file_size || 0),
+        req.body.mime_type || '',
+        req.body.link || fileName,
+      ]
+    );
+
+    const [documents] = await connection.execute(
+      `SELECT id, user_id, document_type, file_name, file_size, mime_type, link, status,
+        reason, created_at, processed_at, processed_by
+       FROM account_documents
+       WHERE id = ?`,
+      [result.insertId]
+    );
+
+    connection.release();
+    return res.status(201).json(documents[0]);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/trading-accounts', authMiddleware, async (req, res) => {
   try {
     if (await isAdminUser(req.userId)) {

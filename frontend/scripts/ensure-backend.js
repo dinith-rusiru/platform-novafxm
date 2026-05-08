@@ -2,10 +2,11 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const rootDir = path.join(__dirname, '..');
-const serverDir = path.join(rootDir, 'server');
-const outLog = path.join(serverDir, 'backend.out.log');
-const errLog = path.join(serverDir, 'backend.err.log');
+const frontendDir = path.join(__dirname, '..');
+const projectDir = path.join(frontendDir, '..');
+const backendDir = path.join(projectDir, 'backend');
+const outLog = path.join(backendDir, 'backend.out.log');
+const errLog = path.join(backendDir, 'backend.err.log');
 const healthUrl = 'http://localhost:3001/api/health';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -33,7 +34,7 @@ const startBackend = () => {
   const stderr = fs.openSync(errLog, 'a');
 
   const child = spawn(process.execPath, ['server.js'], {
-    cwd: serverDir,
+    cwd: backendDir,
     detached: true,
     stdio: ['ignore', stdout, stderr],
     windowsHide: true,
@@ -53,7 +54,7 @@ const main = async () => {
 
   if (!(await waitForBackend())) {
     console.error(`Backend did not become ready at ${healthUrl}`);
-    console.error(`Check ${path.relative(rootDir, errLog)} for startup errors.`);
+    console.error(`Check ${path.relative(projectDir, errLog)} for startup errors.`);
     process.exit(1);
   }
 

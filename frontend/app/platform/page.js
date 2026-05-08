@@ -1,31 +1,18 @@
 'use client';
 
 import { useTrading } from '@/lib/useTrading';
-import { getSymbolMeta } from '@/lib/symbolMeta';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import ChartPanel from '@/components/ChartPanel';
 import TradingPanel from '@/components/TradingPanel';
 import PositionsPanel from '@/components/PositionsPanel';
 import { ProtectedRoute } from '@/context/ProtectedRoute';
-import { useState } from 'react';
 
 function PlatformContent() {
   const trading = useTrading();
-  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSymbolSelect = (symbol) => {
     trading.setSelectedSymbol(symbol);
-  };
-
-  const handleSearch = (query) => {
-    setSearchQuery(query.toUpperCase());
-    if (query.trim()) {
-      const meta = getSymbolMeta(query.toUpperCase());
-      if (meta) {
-        trading.setSelectedSymbol(meta.symbol);
-      }
-    }
   };
 
   return (
@@ -35,7 +22,6 @@ function PlatformContent() {
         accounts={trading.accounts}
         selectedAccountId={trading.selectedAccountId}
         onAccountChange={trading.switchAccount}
-        onSearch={handleSearch}
       />
 
       <div className="flex flex-1 overflow-hidden">
